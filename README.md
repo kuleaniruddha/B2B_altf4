@@ -9,7 +9,7 @@ A modular, AI-powered civic issue reporting and administration platform. JanSamp
 The system is built across three primary tiers:
 1. **AI Pipeline & Backend**: Core computer vision and classification engine with automated departmental routing.
 2. **Admin Dashboard**: Real-time management portal for civic authorities to triage, inspect AI confidence scores, and resolve reports.
-3. **Citizen Application**: Mobile interface for capturing geotagged, authenticated civic complaints.
+3. **Citizen Mobile App**: Cross-platform Flutter mobile client for capturing geotagged, authenticated civic complaints with live GPS and camera integration.
 4. **Web Demo Portal**: Zero-dependency frontend for rapid testing and demonstrations.
 
 ```mermaid
@@ -23,13 +23,36 @@ graph TD
     subgraph "Admin & Citizen Portals"
         Admin[Civic Admin Dashboard - React/Vite]
         Demo[Standalone Web Demo - HTML/JS]
-        Citizen[Citizen Mobile Client]
+        Citizen[Citizen Mobile Client - Flutter]
     end
 
     Citizen --> API
     Demo --> API
     API --> AI
     Admin --> API
+```
+
+---
+
+## 📱 Citizen Mobile App (`/smart-civic-system-ak6/citizen_app`)
+
+Cross-platform mobile client built using Flutter (supporting Android, iOS, Web, and Desktop). Allows citizens to snap photos of municipal issues, attach geotags, monitor progress, and receive resolution alerts.
+
+### Mobile Features
+- **Issue Reporting**: Camera capture with real-time location resolution and image authenticity hashing.
+- **Status Tracking**: Track complaint lifecycle (Submitted -> Verified -> Assigned -> Resolved).
+- **Multilingual Support**: Built-in localization support for regional languages.
+- **On-Device Reference**: `mobile_reference/` contains standalone Dart services for offline image authenticity checks and local classification.
+
+### Running the Mobile App
+```bash
+cd smart-civic-system-ak6/citizen_app
+
+# Fetch dependencies
+flutter pub get
+
+# Launch app (select emulator or connected device)
+flutter run
 ```
 
 ---
@@ -47,15 +70,6 @@ The Python backend provides a high-throughput FastAPI service powered by CLIP ze
 python run_local_api.py
 ```
 The server will start on `http://127.0.0.1:8000`.
-
----
-
-## 🌐 Standalone Demo Web Portal (`/frontend`)
-
-A lightweight, zero-dependency HTML5/CSS/JavaScript client designed for quick image testing, drag-and-drop analysis, and category prediction inspection.
-
-- **Direct Launch**: Open `frontend/index.html` in any web browser.
-- **Integrated Mode**: Served directly through the FastAPI backend at `http://127.0.0.1:8000/`.
 
 ---
 
@@ -77,6 +91,15 @@ The dashboard runs at `http://localhost:5173`.
 
 ---
 
+## 🌐 Standalone Demo Web Portal (`/frontend`)
+
+A lightweight, zero-dependency HTML5/CSS/JavaScript client designed for quick image testing, drag-and-drop analysis, and category prediction inspection.
+
+- **Direct Launch**: Open `frontend/index.html` in any web browser.
+- **Integrated Mode**: Served directly through the FastAPI backend at `http://127.0.0.1:8000/`.
+
+---
+
 ## 🔒 Security & Firestore Rules
 
 `smart-civic-system-ak6/firestore.rules` defines fine-grained access control:
@@ -91,11 +114,10 @@ The dashboard runs at `http://localhost:5173`.
 ```text
 ├── configs/               # Model classifier, detector, and routing configurations
 ├── frontend/              # Standalone web testing portal (HTML/CSS/JS)
-│   ├── app.js
-│   ├── index.html
-│   └── styles.css
 ├── jansampark_ai/         # Core AI & backend package
+├── mobile_reference/      # On-device Dart AI & verification reference services
 ├── smart-civic-system-ak6/
+│   ├── citizen_app/       # Cross-platform Flutter mobile client
 │   ├── firestore.rules    # Firebase security rules
 │   └── smart-civic-admin/ # React + Vite Admin Web Dashboard
 ├── tests/                 # Unit and integration test suite
