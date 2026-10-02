@@ -13,16 +13,22 @@ import ViewComplaint from '../components/ViewComplaint';
 export { STATUS, PRIORITY, DEPTS, STEPS };
 
 // ─── Complaints page ───────────────────────────────────────────────────────────
-export default function Complaints({ user }) {
+export default function Complaints({ user, initialSelectedId, onClearSelectedId }) {
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('newest');
-  const [selectedId, setSelectedId] = useState(null);
+  const [selectedId, setSelectedId] = useState(initialSelectedId || null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [deletingId, setDeletingId] = useState(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  useEffect(() => {
+    if (initialSelectedId) {
+      setSelectedId(initialSelectedId);
+    }
+  }, [initialSelectedId]);
 
   const isHOD = user.role === 'hod';
 
@@ -101,7 +107,10 @@ export default function Complaints({ user }) {
   ];
 
   const handleOpen = useCallback(issue => setSelectedId(issue.id), []);
-  const handleClose = useCallback(() => setSelectedId(null), []);
+  const handleClose = useCallback(() => {
+    setSelectedId(null);
+    if (onClearSelectedId) onClearSelectedId();
+  }, [onClearSelectedId]);
 
   const handleDelete = useCallback(async (issueId, issueTitle, e) => {
     if (e) e.stopPropagation();

@@ -9,6 +9,26 @@
   --line: rgba(31, 42, 39, 0.12);
   --shadow: 0 24px 80px rgba(25, 36, 32, 0.12);
   --radius: 28px;
+  --body-bg: radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 28%),
+             radial-gradient(circle at top right, rgba(194, 65, 12, 0.14), transparent 24%),
+             linear-gradient(180deg, #fbf7ef, var(--bg));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1311;
+    --surface: rgba(18, 30, 27, 0.75);
+    --surface-strong: #142320;
+    --ink: #e8f0ec;
+    --muted: #8ca39a;
+    --accent: #2dd4bf;
+    --accent-2: #fb923c;
+    --line: rgba(255, 255, 255, 0.12);
+    --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+    --body-bg: radial-gradient(circle at top left, rgba(45, 212, 191, 0.14), transparent 28%),
+               radial-gradient(circle at top right, rgba(251, 146, 60, 0.10), transparent 24%),
+               linear-gradient(180deg, #070c0b, var(--bg));
+  }
 }
 
 * {
@@ -24,10 +44,7 @@ body {
   min-height: 100vh;
   font-family: Georgia, "Times New Roman", serif;
   color: var(--ink);
-  background:
-    radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 28%),
-    radial-gradient(circle at top right, rgba(194, 65, 12, 0.14), transparent 24%),
-    linear-gradient(180deg, #fbf7ef, var(--bg));
+  background: var(--body-bg);
 }
 
 .shell {

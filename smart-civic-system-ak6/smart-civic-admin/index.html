@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Smart Civic Mumbai — Official BMC Admin Control Panel" />
     <meta name="theme-color" content="#e65100" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <title>Smart Civic Mumbai — Admin Panel</title>
 
     <!-- Favicon via SVG data URI -->
@@ -43,14 +45,23 @@
 
       /* Prevent flash of unstyled content */
       html {
-        background:
-          radial-gradient(circle at top left, rgba(255, 184, 146, 0.32), transparent 30%),
-          radial-gradient(circle at top right, rgba(123, 177, 255, 0.22), transparent 28%),
-          linear-gradient(180deg, #f7f8fc 0%, #eef2f8 100%);
+        background-color: #eef2f8;
+      }
+      html[data-theme="dark"] {
+        background-color: #080d1a;
       }
       body { margin: 0; opacity: 0; transition: opacity .15s ease; }
       body.ready { opacity: 1; }
     </style>
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('theme');
+          var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

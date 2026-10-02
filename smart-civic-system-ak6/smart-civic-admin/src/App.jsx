@@ -13,14 +13,14 @@ function Loader() {
     <div style={{
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      height: '100vh', background: '#f4f6fb', gap: 16,
+      height: '100vh', background: 'var(--bg)', gap: 16,
     }}>
       {/* Logo */}
       <div style={{
         width: 52, height: 52, borderRadius: 16,
-        background: 'linear-gradient(135deg, #e65100, #ff8f00)',
+        background: 'linear-gradient(135deg, var(--accent), var(--accentL))',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 8px 24px rgba(230,81,0,0.3)',
+        boxShadow: 'var(--shAccent)',
         marginBottom: 4,
       }}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -33,15 +33,15 @@ function Loader() {
       {/* Spinner */}
       <div style={{
         width: 28, height: 28, borderRadius: '50%',
-        border: '2.5px solid #e8ecf4',
-        borderTopColor: '#e65100',
+        border: '2.5px solid var(--border)',
+        borderTopColor: 'var(--accent)',
         animation: 'spin .8s linear infinite',
       }}/>
 
       <p style={{
         fontFamily: 'var(--font-display)',
         fontSize: 13, fontWeight: 600,
-        color: '#94a3b8', letterSpacing: 0.3,
+        color: 'var(--text3)', letterSpacing: 0.3,
       }}>Authenticating…</p>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

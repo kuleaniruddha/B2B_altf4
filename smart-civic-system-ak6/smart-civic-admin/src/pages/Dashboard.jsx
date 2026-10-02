@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import {
@@ -144,11 +144,93 @@ function StatusDot({ color, label, value, total }) {
   );
 }
 
+const FAKE_CRISIS_ISSUES = Array.from({ length: 55 }, (_, i) => {
+  const types = [
+    { cat: 'Water', titles: ['Main Pipeline Burst', 'Severe Water Logging', 'Contaminated Supply', 'Pump Station Failure'] },
+    { cat: 'Electricity', titles: ['Transformer Fire', 'Grid Failure', 'High Voltage Surge', 'Poles Collapsed'] },
+    { cat: 'Roads', titles: ['Massive Sinkhole', 'Bridge Structural Damage', 'Road Cave-in', 'Landslide on Arterial Road'] },
+    { cat: 'Drainage', titles: ['Sewer Overflow', 'Storm Drain Blockage', 'Toxic Sludge Leak', 'Manhole Explosion'] }
+  ];
+  const t = types[i % types.length];
+  const title = t.titles[Math.floor(Math.random() * t.titles.length)] + ` - Sector ${Math.floor(Math.random()*10)+1}`;
+  return {
+    id: `CRI-${String(i).padStart(3, '0')}`,
+    latitude: 18.9 + (Math.random() * 0.3), // 18.9 to 19.2
+    longitude: 72.8 + (Math.random() * 0.15), // 72.8 to 72.95
+    title: title,
+    category: t.cat,
+    status: "open",
+    desc: "Critical system stress simulated infrastructure failure. Immediate action required.",
+    wardNo: Math.floor(Math.random() * 24) + 1,
+  };
+});
+
 // --- Dashboard ---
-export default function Dashboard({ user }) {
+export default function Dashboard({ user, isCrisisMode }) {
   const [issues, setIssues] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Map & AI Panel Refs
+  const mapRef = useRef(null);
+  const mapInstance = useRef(null);
+  const markersRef = useRef([]);
+  const [aiPanelIssue, setAiPanelIssue] = useState(null);
+
+  const displayIssues = isCrisisMode ? [...issues, ...FAKE_CRISIS_ISSUES] : issues;
+
+  useEffect(() => {
+    // Attempt map load if container and Leaflet exist
+    const interval = setInterval(() => {
+      if (mapRef.current && window.L && !mapInstance.current) {
+        mapInstance.current = window.L.map(mapRef.current).setView([19.0760, 72.8777], 11);
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(mapInstance.current);
+      }
+
+      if (mapInstance.current) {
+        clearInterval(interval);
+        
+        // Clear old markers
+        markersRef.current.forEach(m => mapInstance.current.removeLayer(m));
+        markersRef.current = [];
+
+        // Plot markers
+        displayIssues.forEach(issue => {
+          // If real issue lacks lat/long, skip or give fake coords around Mumbai
+          const lat = parseFloat(issue.latitude) || (19.07 + (Math.random() * 0.05));
+          const lng = parseFloat(issue.longitude) || (72.87 + (Math.random() * 0.05));
+          
+          const isCrisis = issue.id.startsWith('CRI-');
+          
+          const customIcon = window.L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div style="background-color: ${isCrisis ? 'var(--red)' : 'var(--blue)'}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 6px rgba(0,0,0,0.5); ${isCrisisMode && isCrisis ? 'animation: pulse 1s infinite' : ''}"></div>`,
+            iconSize: [14, 14],
+            iconAnchor: [7, 7]
+          });
+
+          const marker = window.L.marker([lat, lng], { icon: customIcon }).addTo(mapInstance.current);
+          
+          marker.on('click', () => {
+             // AI payload fallback 
+             setAiPanelIssue({
+                severity: isCrisis ? "Critical" : "Medium",
+                hazard_justification: issue.desc || "Potential public hazard requires municipal review.",
+                fiscal_impact: isCrisis ? "₹" + (Math.floor(Math.random() * 50 + 50) * 100000).toLocaleString('en-IN') : "₹" + (Math.floor(Math.random() * 50 + 5) * 1000).toLocaleString('en-IN'),
+                dispatch_order: `Immediate dispatch required for ${issue.title || 'issue'}. Secure the perimeter, prepare heavy equipment, and resolve within standard SLAs.`,
+                title: issue.title || 'Untitled Complaint',
+             });
+          });
+          
+          markersRef.current.push(marker);
+        });
+      }
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [displayIssues, isCrisisMode]);
 
   const isHOD = user.role === 'hod';
 
@@ -219,6 +301,23 @@ export default function Dashboard({ user }) {
     return tb - ta;
   }).slice(0, 7);
 
+  const wardMap = {};
+  displayIssues.forEach(i => {
+    const w = i.wardNo ? `Ward ${i.wardNo}` : 'Unknown';
+    wardMap[w] = (wardMap[w] || 0) + 1;
+  });
+  
+  const wardDataRaw = Object.entries(wardMap).sort((a, b) => b[1] - a[1]);
+  let wardData = [];
+  if (wardDataRaw.length > 6) {
+    wardData = wardDataRaw.slice(0, 6).map(([name, value], i) => ({ name, value, color: CAT_COLORS[i % CAT_COLORS.length] }));
+    const otherSum = wardDataRaw.slice(6).reduce((acc, curr) => acc + curr[1], 0);
+    wardData.push({ name: 'Other Wards', value: otherSum, color: 'var(--textMuted)' });
+  } else {
+    wardData = wardDataRaw.map(([name, value], i) => ({ name, value, color: CAT_COLORS[i % CAT_COLORS.length] }));
+  }
+  const displayTotal = displayIssues.length;
+
   if (loading) return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 340 }}>
       <div style={{
@@ -283,6 +382,15 @@ export default function Dashboard({ user }) {
         )}
         {!isHOD && <KPI delay={0.20} iconKey="citizens" label="Citizens" value={citizens} color="var(--purple)" bg="var(--purpleBg)" bd="var(--purpleBd)" />}
       </div>
+
+      {/* Live Map Row */}
+      <Card iconKey="alert" title="Live Interactive Infrastructure Map" subtitle={isCrisisMode ? "EMERGENCY MAP LAYER ACTIVE" : "Click markers for AI Resolution Studio"}>
+        <div ref={mapRef} style={{
+          width: '100%', height: 420, borderRadius: 14, background: 'var(--surface2)',
+          border: isCrisisMode ? '2px solid var(--red)' : '1px solid var(--border)',
+          overflow: 'hidden', transition: 'border 0.3s'
+        }} />
+      </Card>
 
       {/* Row 1: Trend + Pie */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
@@ -417,6 +525,101 @@ export default function Dashboard({ user }) {
             })
           }
         </Card>
+      </div>
+
+      {/* Row 3: Ward Distribution */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
+        <Card iconKey="alert" title="Ward-wise Complaint Distribution" subtitle="Active and simulated problem hotspots">
+          {wardData.length === 0
+            ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 220, color: 'var(--text3)', fontSize: 13 }}>No data yet</div>
+            : <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'center' }}>
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie data={wardData} cx="50%" cy="50%"
+                    innerRadius={55} outerRadius={85}
+                    paddingAngle={4} dataKey="value" stroke="none">
+                    {wardData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                  </Pie>
+                  <Tooltip content={<CustomTT />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {wardData.map(d => (
+                  <StatusDot key={d.name} color={d.color} label={d.name} value={d.value} total={displayTotal} />
+                ))}
+              </div>
+            </div>
+          }
+        </Card>
+      </div>
+
+      {/* AI Sliding Side Panel */}
+      <div style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0, width: 420,
+        background: 'var(--bg)', borderLeft: '1px solid var(--border)',
+        boxShadow: '-10px 0 30px rgba(0,0,0,0.15)', zIndex: 99999,
+        transform: aiPanelIssue ? 'translateX(0)' : 'translateX(100%)',
+        transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+        display: 'flex', flexDirection: 'column',
+      }}>
+        {aiPanelIssue && (
+          <>
+            <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ margin: 0, fontSize: 18, color: 'var(--text)' }}>AI Resolution Studio</h2>
+                <button onClick={() => setAiPanelIssue(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text2)', fontSize: 24 }}>×</button>
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text3)' }}>Automated orchestration & analysis</p>
+            </div>
+            
+            <div style={{ padding: 24, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div>
+                <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase' }}>Severity Assessment</p>
+                <div style={{
+                  display: 'inline-block', padding: '6px 14px', borderRadius: 99, fontWeight: 800, fontSize: 13,
+                  background: aiPanelIssue.severity === 'Critical' ? 'var(--redBg)' : aiPanelIssue.severity === 'High' ? 'var(--orangeBg)' : aiPanelIssue.severity === 'Medium' ? 'var(--yellowBg)' : 'var(--greenBg)',
+                  color: aiPanelIssue.severity === 'Critical' ? 'var(--red)' : aiPanelIssue.severity === 'High' ? 'var(--orange)' : aiPanelIssue.severity === 'Medium' ? '#b8860b' : 'var(--green)',
+                  border: `1px solid ${aiPanelIssue.severity === 'Critical' ? 'var(--redBd)' : aiPanelIssue.severity === 'High' ? 'var(--orangeBd)' : 'transparent'}`,
+                  animation: aiPanelIssue.severity === 'Critical' ? 'pulse 1.5s infinite' : 'none'
+                }}>
+                  {aiPanelIssue.severity}
+                </div>
+              </div>
+
+              <div>
+                <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase' }}>Hazard Justification</p>
+                <p style={{ margin: 0, fontSize: 14, color: 'var(--text)', lineHeight: 1.5 }}>
+                  {aiPanelIssue.hazard_justification}
+                </p>
+              </div>
+
+              <div>
+                <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase' }}>Estimated Fiscal Impact</p>
+                <p style={{ margin: 0, fontSize: 28, fontFamily: 'monospace', fontWeight: 800, color: 'var(--text)', letterSpacing: -1 }}>
+                  {aiPanelIssue.fiscal_impact}
+                </p>
+              </div>
+
+              <div>
+                <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase' }}>AI Dispatch Directive</p>
+                <div style={{ padding: 14, borderRadius: 10, background: 'var(--surface2)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+                  {aiPanelIssue.dispatch_order}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: 24, borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
+              <button onClick={() => {
+                alert(`Dispatch Order Approved for ${aiPanelIssue.title}`);
+                setAiPanelIssue(null);
+              }} style={{
+                width: '100%', padding: 16, borderRadius: 12, background: 'var(--green)', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0, 180, 0, 0.3)', transition: 'all 0.2s'
+              }}>
+                Approve & Dispatch Crew
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
     </div>

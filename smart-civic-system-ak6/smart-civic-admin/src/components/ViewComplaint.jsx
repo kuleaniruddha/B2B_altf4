@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, memo, useCallback } from 'react';
-import { doc, updateDoc, deleteDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react';
+import { doc, updateDoc, deleteDoc, arrayUnion, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { STATUS, PRIORITY, DEPTS, STEPS, ESCALATION_HOURS, getDepartmentForCategory } from '../constants';
 import { Ic, ICONS, SBadge, PBadge } from './SharedUI';
@@ -41,7 +41,7 @@ const LazyImage = memo(({ src }) => {
       position: 'relative', minHeight: state === 'error' ? 0 : 100,
       cursor: state === 'ok' ? 'zoom-in' : 'default',
     }}
-      onClick={() => state === 'ok' && window.open(src, '_blank')}
+    onClick={() => state === 'ok' && window.open(src, '_blank')}
     >
       {state === 'loading' && (
         <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -50,7 +50,7 @@ const LazyImage = memo(({ src }) => {
             border: '2.5px solid var(--border)',
             borderTopColor: 'var(--accent)',
             animation: 'spin .7s linear infinite',
-          }} />
+          }}/>
         </div>
       )}
       {state === 'error' && (
@@ -64,7 +64,7 @@ const LazyImage = memo(({ src }) => {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, color: 'var(--yellow)',
           }}>
-            <Ic d={ICONS.img} size={16} />
+            <Ic d={ICONS.img} size={16}/>
           </div>
           <div>
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', margin: 0 }}>
@@ -120,7 +120,7 @@ const MapPreview = memo(({ lat, lng }) => {
         display: 'flex', alignItems: 'center', gap: 7,
         fontSize: 11, fontWeight: 700, color: 'var(--text2)',
       }}>
-        <Ic d={ICONS.map} size={13} />
+        <Ic d={ICONS.map} size={13}/>
         Location Map
         <a href={fullUrl} target="_blank" rel="noopener noreferrer"
           style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
@@ -194,7 +194,7 @@ const AnalysisCard = memo(({ state, result, error }) => {
             borderTopColor: 'var(--accent)',
             animation: 'spin .7s linear infinite',
             flexShrink: 0,
-          }} />
+          }}/>
           <p style={{ margin: 0, fontSize: 12, fontWeight: 600 }}>
             Running your civic AI model on this complaint image...
           </p>
@@ -293,7 +293,7 @@ const ActBtn = memo(({ label, color, bg, bd, active, disabled, onClick }) => (
       transition: 'all .2s cubic-bezier(.4,0,.2,1)',
       outline: 'none', textAlign: 'left',
       display: 'flex', alignItems: 'center', gap: 8,
-      boxShadow: active ? `0 4px 12px ${bg}44` : 'none',
+      boxShadow: active ? '0 4px 12px var(--accentGl)' : 'none',
       flexShrink: 0,
     }}
     onMouseEnter={e => {
@@ -302,7 +302,7 @@ const ActBtn = memo(({ label, color, bg, bd, active, disabled, onClick }) => (
         e.currentTarget.style.color = color;
         e.currentTarget.style.background = bg;
         e.currentTarget.style.transform = 'translateY(-1px)';
-        e.currentTarget.style.boxShadow = `0 4px 12px ${bg}44`;
+        e.currentTarget.style.boxShadow = '0 4px 12px var(--accentGl)';
       }
     }}
     onMouseLeave={e => {
@@ -319,7 +319,7 @@ const ActBtn = memo(({ label, color, bg, bd, active, disabled, onClick }) => (
       width: 8, height: 8, borderRadius: '50%',
       background: color, flexShrink: 0, opacity: active ? 1 : 0.5,
       boxShadow: active ? `0 0 6px ${color}` : 'none',
-    }} />
+    }}/>
     {label}
     {active && (
       <span style={{
@@ -346,7 +346,7 @@ const PremiumBtn = memo(({ label, icon, onClick, disabled, loading, color = 'var
       opacity: (disabled && !loading) ? 0.5 : 1,
       transition: 'all .25s cubic-bezier(.16,1,.3,1)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-      boxShadow: `0 4px 14px ${bg}66`,
+      boxShadow: 'var(--sh)',
       outline: 'none', flexShrink: 0,
     }}
     onMouseEnter={e => {
@@ -364,7 +364,7 @@ const PremiumBtn = memo(({ label, icon, onClick, disabled, loading, color = 'var
     onMouseDown={e => { if (!disabled && !loading) e.currentTarget.style.transform = 'scale(0.98)'; }}
     onMouseUp={e => { if (!disabled && !loading) e.currentTarget.style.transform = 'translateY(-2px) scale(1.01)'; }}
   >
-    <Ic d={loading ? ICONS.cal : icon} size={16} sw={2.5} className={loading ? 'spin' : ''} />
+    <Ic d={loading ? ICONS.cal : icon} size={16} sw={2.5} className={loading ? 'spin' : ''}/>
     {loading ? 'Processing...' : label}
   </button>
 ));
@@ -386,18 +386,40 @@ const ColScroll = memo(({ children, style = {} }) => (
 
 // --- ViewComplaint ---
 export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
-  const [note, setNote] = useState('');
-  const [dept, setDept] = useState(issue.assignedTo || '');
+  const [currentIssue, setCurrentIssue] = useState(issue);
+  const [note,   setNote]   = useState('');
+  const [dept,   setDept]   = useState(issue.assignedTo || '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [toast, setToast] = useState({ msg: '', type: 'ok' });
+  const [toast,  setToast]  = useState({ msg: '', type: 'ok' });
   const [analysisState, setAnalysisState] = useState('idle');
   const [analysisResult, setAnalysisResult] = useState(null);
   const [analysisError, setAnalysisError] = useState('');
   const timer = useRef(null);
 
-  const isHOD = user.role === 'hod';
+  const isHOD   = user.role === 'hod';
   const isSuper = user.role === 'super_admin' || user.role === 'admin';
+
+  // Sync state when props change
+  useEffect(() => {
+    setCurrentIssue(issue);
+    if (issue.assignedTo) setDept(issue.assignedTo);
+  }, [issue]);
+
+  // Live Firestore document listener for zero-latency multi-admin synchronization
+  useEffect(() => {
+    if (!issue.id) return;
+    const unsub = onSnapshot(doc(db, 'issues', issue.id), snap => {
+      if (snap.exists()) {
+        const liveData = { id: snap.id, ...snap.data() };
+        setCurrentIssue(liveData);
+        if (liveData.assignedTo) setDept(liveData.assignedTo);
+      }
+    }, err => {
+      console.warn("ViewComplaint live listener error:", err);
+    });
+    return unsub;
+  }, [issue.id]);
 
   const showToast = useCallback((msg, type = 'ok') => {
     setToast({ msg, type });
@@ -406,15 +428,15 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
   }, []);
 
   const handleDeleteComplaint = useCallback(async () => {
-    if (!window.confirm(`Are you sure you want to delete complaint "${issue.title || issue.id}"?\n\nThis cannot be undone.`)) {
+    if (!window.confirm(`Are you sure you want to delete complaint "${currentIssue.title || currentIssue.id}"?\n\nThis cannot be undone.`)) {
       return;
     }
     setDeleting(true);
     try {
       if (onDelete) {
-        await onDelete(issue.id, issue.title);
+        await onDelete(currentIssue.id, currentIssue.title);
       } else {
-        await deleteDoc(doc(db, 'issues', issue.id));
+        await deleteDoc(doc(db, 'issues', currentIssue.id));
       }
       onClose();
     } catch (err) {
@@ -422,7 +444,7 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
       showToast('Delete failed: ' + err.message, 'error');
       setDeleting(false);
     }
-  }, [issue.id, issue.title, onDelete, onClose, showToast]);
+  }, [currentIssue.id, currentIssue.title, onDelete, onClose, showToast]);
 
   useEffect(() => {
     const h = e => { if (e.key === 'Escape') onClose(); };
@@ -431,16 +453,16 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
   }, [onClose]);
 
   useEffect(() => {
-    if (issue.assignedTo) {
-      setDept(issue.assignedTo);
-    } else if (issue.category) {
-      const autoDept = getDepartmentForCategory(issue.category);
+    if (currentIssue.assignedTo) {
+      setDept(currentIssue.assignedTo);
+    } else if (currentIssue.category) {
+      const autoDept = getDepartmentForCategory(currentIssue.category);
       if (autoDept) {
         setDept(autoDept);
         // Persist auto-assignment to Firestore if not assigned yet
-        updateDoc(doc(db, 'issues', issue.id), {
+        updateDoc(doc(db, 'issues', currentIssue.id), {
           assignedTo: autoDept,
-          status: issue.status === 'open' ? 'assigned' : issue.status,
+          status: currentIssue.status === 'open' ? 'assigned' : currentIssue.status,
           timeline: arrayUnion({
             step: 'Forwarded to Department',
             time: new Date().toISOString(),
@@ -450,15 +472,15 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
         }).catch(err => console.warn("Auto-assignment on load failed:", err));
       }
     }
-  }, [issue.id, issue.assignedTo, issue.category, issue.status]);
+  }, [currentIssue.id, currentIssue.assignedTo, currentIssue.category, currentIssue.status]);
 
   useEffect(() => {
     let cancelled = false;
 
-    const lat = Number(issue.latitude);
-    const lon = Number(issue.longitude);
+    const lat = Number(currentIssue.latitude);
+    const lon = Number(currentIssue.longitude);
 
-    if (!issue.imageUrl) {
+    if (!currentIssue.imageUrl) {
       setAnalysisState('idle');
       setAnalysisResult(null);
       setAnalysisError('');
@@ -478,7 +500,7 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
       setAnalysisError('');
 
       try {
-        const imageResponse = await fetch(issue.imageUrl);
+        const imageResponse = await fetch(currentIssue.imageUrl);
         if (!imageResponse.ok) {
           throw new Error(`Image fetch failed with status ${imageResponse.status}.`);
         }
@@ -486,7 +508,7 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
         const imageBlob = await imageResponse.blob();
         const fileExt = imageBlob.type?.split('/')[1] || 'jpg';
         const formData = new FormData();
-        formData.append('image', imageBlob, `complaint-${issue.id}.${fileExt}`);
+        formData.append('image', imageBlob, `complaint-${currentIssue.id}.${fileExt}`);
         formData.append('lat', String(lat));
         formData.append('lon', String(lon));
 
@@ -505,14 +527,14 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
           setAnalysisState('done');
 
           // Auto-assign to concerned department based on AI classification
-          const detectedLabel = payload.issueLabel || issue.category;
+          const detectedLabel = payload.issueLabel || currentIssue.category;
           const targetDept = (payload.departmentId && DEPTS.includes(payload.departmentId))
             ? payload.departmentId
             : getDepartmentForCategory(detectedLabel);
 
-          if (targetDept && (!issue.assignedTo || issue.status === 'open')) {
+          if (targetDept && (!currentIssue.assignedTo || currentIssue.status === 'open')) {
             try {
-              await updateDoc(doc(db, 'issues', issue.id), {
+              await updateDoc(doc(db, 'issues', currentIssue.id), {
                 assignedTo: targetDept,
                 status: 'assigned',
                 timeline: arrayUnion({
@@ -542,7 +564,7 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
     return () => {
       cancelled = true;
     };
-  }, [issue.id, issue.imageUrl, issue.latitude, issue.longitude]);
+  }, [currentIssue.id, currentIssue.imageUrl, currentIssue.latitude, currentIssue.longitude]);
 
   const fmt = useCallback(ts => {
     if (!ts) return '---';
@@ -561,55 +583,151 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
   }, [showToast]);
 
   const updateStatus = useCallback((s, extra = {}, timelineStep = null) => run(async () => {
+    const stepLabel = timelineStep || (s === 'rejected' ? 'Request Rejected' : (STATUS[s]?.label || s));
+    const newEntry = {
+      step: stepLabel,
+      time: new Date().toISOString(),
+      by: user.name || user.email?.split('@')[0] || (user.role === 'hod' ? `HOD (${user.department})` : 'Master Admin'),
+    };
+
+    // Optimistically update local state immediately
+    setCurrentIssue(prev => ({
+      ...prev,
+      status: s,
+      ...extra,
+      timeline: [...(prev.timeline || []), newEntry],
+    }));
+
     const payload = {
-      status: s, updatedAt: serverTimestamp(),
-      timeline: arrayUnion({
-        step: timelineStep || STATUS[s]?.label || s,
-        time: new Date().toISOString(),
-        by: user.name || user.role,
-      }),
+      status: s,
+      updatedAt: serverTimestamp(),
+      timeline: arrayUnion(newEntry),
       ...extra,
     };
-    await updateDoc(doc(db, 'issues', issue.id), payload);
+
+    await updateDoc(doc(db, 'issues', currentIssue.id), payload);
     showToast(`Status -> "${STATUS[s]?.label || s}"`);
-  }), [issue.id, run, showToast, user.name, user.role]);
+  }), [currentIssue.id, run, showToast, user.name, user.email, user.role, user.department]);
 
   const setPrio = useCallback(p => run(async () => {
-    await updateDoc(doc(db, 'issues', issue.id), { priority: p, updatedAt: serverTimestamp() });
+    setCurrentIssue(prev => ({ ...prev, priority: p }));
+    await updateDoc(doc(db, 'issues', currentIssue.id), { priority: p, updatedAt: serverTimestamp() });
     showToast(`Priority -> "${p}"`);
-  }), [issue.id, run, showToast]);
+  }), [currentIssue.id, run, showToast]);
 
   const saveNote = useCallback(() => run(async () => {
     if (!note.trim()) return;
-    await updateDoc(doc(db, 'issues', issue.id), {
-      comments: arrayUnion({ text: note.trim(), by: 'admin', time: new Date().toISOString() }),
+    const newComment = { text: note.trim(), by: user.name || user.email?.split('@')[0] || 'Admin', time: new Date().toISOString() };
+    setCurrentIssue(prev => ({ ...prev, comments: [...(prev.comments || []), newComment] }));
+    await updateDoc(doc(db, 'issues', currentIssue.id), {
+      comments: arrayUnion(newComment),
       updatedAt: serverTimestamp(),
     });
     setNote('');
     showToast('Note saved');
-  }), [issue.id, note, run, showToast]);
+  }), [currentIssue.id, note, run, showToast, user.name, user.email]);
 
-  const sc = STATUS[issue.status] || STATUS.open;
-  const tl = issue.timeline || [];
-  const cm = issue.comments || [];
+  const sc = STATUS[currentIssue.status] || STATUS.open;
+  const tl = currentIssue.timeline || [];
+  const cm = currentIssue.comments || [];
+  const isRejected = currentIssue.status === 'rejected';
 
-  const stepDone = useCallback(key => {
-    if (key === 'Reported') return true;
-    if (key === 'Forwarded') return !!issue.assignedTo;
-    if (key === 'Assigned') return !!tl.find(t => t.step === 'Assigned') || ['in_progress', 'assigned', 'resolved', 'rejected'].includes(issue.status);
-    if (key === 'In Progress') return ['resolved', 'rejected'].includes(issue.status);
-    if (key === 'Resolved') return issue.status === 'resolved';
-    return false;
-  }, [issue.status, issue.assignedTo, tl]);
+  // Dynamic steps for the workflow timeline
+  const activeSteps = useMemo(() => {
+    if (isRejected) {
+      const steps = [
+        { key: 'Reported', label: 'Complaint Registered' },
+      ];
+      if (currentIssue.assignedTo || tl.some(t => t.step?.includes('Forward') || t.step?.includes('Sent'))) {
+        steps.push({ key: 'Forwarded', label: 'Forwarded to Department' });
+      }
+      if (tl.some(t => t.step?.includes('Assign') || t.step?.includes('Acknowledge'))) {
+        steps.push({ key: 'Assigned', label: 'Acknowledge & Assigned' });
+      }
+      if (tl.some(t => t.step?.includes('Progress') || t.step?.includes('Work'))) {
+        steps.push({ key: 'In Progress', label: 'Work in Progress' });
+      }
+      steps.push({ key: 'Rejected', label: 'Request Rejected' });
+      return steps;
+    }
+    return [
+      { key: 'Reported', label: 'Complaint Registered' },
+      { key: 'Forwarded', label: 'Forwarded to Department' },
+      { key: 'Assigned', label: 'Acknowledge & Assigned' },
+      { key: 'In Progress', label: 'Work in Progress' },
+      { key: 'Resolved', label: 'Complaint Resolved' },
+    ];
+  }, [isRejected, currentIssue.assignedTo, tl]);
 
-  const stepActive = useCallback(key =>
-    (key === 'Reported' && issue.status === 'open') ||
-    ((key === 'Assigned' || key === 'In Progress') && issue.status === 'in_progress') ||
-    (key === 'Resolved' && issue.status === 'resolved'),
-    [issue.status]);
+  const getStepState = useCallback((key) => {
+    if (key === 'Rejected') {
+      return isRejected ? 'rejected' : 'idle';
+    }
+    if (isRejected) {
+      if (key === 'Reported') return 'done';
+      if (key === 'Forwarded' && (currentIssue.assignedTo || tl.some(t => t.step?.includes('Forward') || t.step?.includes('Sent')))) return 'done';
+      if (key === 'Assigned' && tl.some(t => t.step?.includes('Assign') || t.step?.includes('Acknowledge'))) return 'done';
+      if (key === 'In Progress' && tl.some(t => t.step?.includes('Progress') || t.step?.includes('Work'))) return 'done';
+      return 'idle';
+    }
+    if (key === 'Reported') return currentIssue.status === 'open' ? 'active' : 'done';
+    if (key === 'Forwarded') {
+      if (['assigned', 'in_progress', 'resolved'].includes(currentIssue.status) || currentIssue.assignedTo) {
+        return currentIssue.status === 'assigned' ? 'active' : 'done';
+      }
+      return 'idle';
+    }
+    if (key === 'Assigned') {
+      if (tl.some(t => t.step?.includes('Assign') || t.step?.includes('Acknowledge')) || ['in_progress', 'resolved'].includes(currentIssue.status)) {
+        return 'done';
+      }
+      if (currentIssue.status === 'assigned') return 'active';
+      return 'idle';
+    }
+    if (key === 'In Progress') {
+      if (currentIssue.status === 'resolved') return 'done';
+      if (currentIssue.status === 'in_progress') return 'active';
+      return 'idle';
+    }
+    if (key === 'Resolved') {
+      if (currentIssue.status === 'resolved') return 'done';
+      return 'idle';
+    }
+    return 'idle';
+  }, [isRejected, currentIssue.status, currentIssue.assignedTo, tl]);
 
-  const isEscalated = ['open', 'assigned'].includes(issue.status) &&
-    ((new Date() - (issue.createdAt?.toDate ? issue.createdAt.toDate() : new Date(issue.createdAt))) / 3600000) > ESCALATION_HOURS;
+  const getStepTimelineItem = useCallback((key) => {
+    if (key === 'Reported') {
+      return tl.find(t => t.step === 'Reported' || t.step === 'Complaint Registered') || {
+        time: currentIssue.createdAt,
+        by: currentIssue.userName || 'Citizen',
+      };
+    }
+    if (key === 'Forwarded') {
+      return tl.find(t => t.step === 'Forwarded' || t.step === 'Forwarded to Department' || t.step === 'Sent to Department' || t.step === 'Auto-Assigned') || (
+        currentIssue.assignedTo ? { time: currentIssue.updatedAt || currentIssue.createdAt, by: currentIssue.assignedTo } : null
+      );
+    }
+    if (key === 'Assigned') {
+      return tl.find(t => t.step === 'Assigned' || t.step === 'Acknowledge & Assigned');
+    }
+    if (key === 'In Progress') {
+      return tl.find(t => t.step === 'In Progress' || t.step === 'Work in Progress');
+    }
+    if (key === 'Resolved') {
+      return tl.find(t => t.step === 'Resolved' || t.step === 'Complaint Resolved');
+    }
+    if (key === 'Rejected') {
+      return tl.find(t => t.step === 'Rejected' || t.step === 'Request Rejected' || t.step === 'Complaint Rejected' || t.step === 'Reject') || {
+        time: currentIssue.updatedAt || new Date().toISOString(),
+        by: user.name || (user.role === 'hod' ? `HOD (${user.department})` : 'Master Admin'),
+      };
+    }
+    return tl.find(t => t.step === key);
+  }, [tl, currentIssue.createdAt, currentIssue.updatedAt, currentIssue.userName, currentIssue.assignedTo, user.name, user.role, user.department]);
+
+  const isEscalated = ['open', 'assigned'].includes(currentIssue.status) &&
+    ((new Date() - (currentIssue.createdAt?.toDate ? currentIssue.createdAt.toDate() : new Date(currentIssue.createdAt))) / 3600000) > ESCALATION_HOURS;
 
   return (
     <div style={{
@@ -629,13 +747,13 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
           fontWeight: 700, cursor: 'pointer', outline: 'none',
           transition: 'all .15s', flexShrink: 0,
         }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface2)'; e.currentTarget.style.color = 'var(--text2)'; }}>
-          <Ic d="M15 18l-6-6 6-6" size={14} sw={2.5} />
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface2)'; e.currentTarget.style.color = 'var(--text2)'; }}>
+          <Ic d="M15 18l-6-6 6-6" size={14} sw={2.5}/>
           Back
         </button>
         <span style={{ fontSize: 12, color: 'var(--text3)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          Complaints {"->"} {issue.title || 'Untitled'}
+          Complaints {"->"} {currentIssue.title || 'Untitled'}
         </span>
       </div>
 
@@ -654,8 +772,8 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
         {/* Status stripe */}
         <div style={{
           height: 5, flexShrink: 0,
-          background: `linear-gradient(90deg, ${sc.color}, ${sc.color}44)`,
-        }} />
+          background: sc?.color ? `linear-gradient(90deg, ${sc.color} 0%, transparent 100%)` : 'var(--accent)',
+        }}/>
 
         {/* Header */}
         <div style={{
@@ -672,9 +790,9 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
                 fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 700,
                 color: 'var(--text)', margin: 0, letterSpacing: -0.3,
                 minWidth: 0,
-              }}>{issue.title || 'Untitled Complaint'}</h2>
-              <SBadge status={issue.status} />
-              {issue.priority && <PBadge priority={issue.priority} />}
+              }}>{currentIssue.title || 'Untitled Complaint'}</h2>
+              <SBadge status={currentIssue.status}/>
+              {currentIssue.priority && <PBadge priority={currentIssue.priority}/>}
             </div>
 
             {!isHOD && (
@@ -705,14 +823,14 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
             fontSize: 12, color: 'var(--text2)',
           }}>
             {[
-              [ICONS.tag, issue.trackId || issue.id?.slice(0, 10)],
-              [ICONS.file, issue.category || '---'],
-              [ICONS.loc, `Ward ${issue.wardNo || '---'}`],
-              [ICONS.user, issue.userName || '---'],
-              [ICONS.cal, fmt(issue.createdAt)],
+              [ICONS.tag,  currentIssue.trackId || currentIssue.id?.slice(0, 10)],
+              [ICONS.file, currentIssue.category || '---'],
+              [ICONS.loc,  `Ward ${currentIssue.wardNo || '---'}`],
+              [ICONS.user, currentIssue.userName  || '---'],
+              [ICONS.cal,  fmt(currentIssue.createdAt)],
             ].map(([ic, val], i) => (
               <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
-                <span style={{ color: 'var(--text3)' }}><Ic d={ic} size={13} /></span>
+                <span style={{ color: 'var(--text3)' }}><Ic d={ic} size={13}/></span>
                 {val}
               </span>
             ))}
@@ -732,7 +850,7 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
             display: 'flex', alignItems: 'center', gap: 8,
             animation: 'fadeIn .3s ease both',
           }}>
-            <Ic d={toast.type === 'error' ? ICONS.info : ICONS.check} size={14} sw={2.5} />
+            <Ic d={toast.type === 'error' ? ICONS.info : ICONS.check} size={14} sw={2.5}/>
             {toast.msg}
           </div>
         )}
@@ -748,20 +866,20 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
 
           {/* Column 1: Image + Map + Details */}
           <ColScroll style={{ borderRight: '1.5px solid var(--border)', padding: '20px 20px' }}>
-            <LazyImage src={issue.imageUrl} />
+            <LazyImage src={currentIssue.imageUrl}/>
             <AnalysisCard state={analysisState} result={analysisResult} error={analysisError} />
-            <MapPreview lat={issue.latitude} lng={issue.longitude} />
+            <MapPreview lat={currentIssue.latitude} lng={currentIssue.longitude}/>
 
             <Section label="Complaint Details">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                <DetailRow label="Description" value={issue.description} />
-                <DetailRow label="Reported by" value={issue.userName} />
-                <DetailRow label="Email" value={issue.userEmail} />
-                <DetailRow label="Ward" value={issue.wardNo ? `Ward ${issue.wardNo}` : '---'} />
-                <DetailRow label="Assigned to" value={issue.assignedTo || 'Not assigned'} />
-                {issue.latitude && (
+                <DetailRow label="Description"  value={currentIssue.description}/>
+                <DetailRow label="Reported by"  value={currentIssue.userName}/>
+                <DetailRow label="Email"         value={currentIssue.userEmail}/>
+                <DetailRow label="Ward"          value={currentIssue.wardNo ? `Ward ${currentIssue.wardNo}` : '---'}/>
+                <DetailRow label="Assigned to"   value={currentIssue.assignedTo || 'Not assigned'}/>
+                {currentIssue.latitude && (
                   <DetailRow label="GPS"
-                    value={`${Number(issue.latitude).toFixed(6)}, ${Number(issue.longitude).toFixed(6)}`} />
+                    value={`${Number(currentIssue.latitude).toFixed(6)}, ${Number(currentIssue.longitude).toFixed(6)}`}/>
                 )}
               </div>
             </Section>
@@ -773,51 +891,124 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
             {/* Timeline */}
             <Section label="Workflow Timeline">
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {STEPS.map((step, i) => {
-                  const done = stepDone(step.key);
-                  const active = stepActive(step.key);
-                  const tItem = tl.find(t => t.step === step.key);
+                {activeSteps.map((step, i) => {
+                  const state = getStepState(step.key);
+                  const tItem = getStepTimelineItem(step.key);
+                  const isLast = i === activeSteps.length - 1;
+                  const isStepRejected = state === 'rejected';
+                  const isStepDone = state === 'done';
+                  const isStepActive = state === 'active';
+
+                  let circleBg = 'var(--surface)';
+                  let circleBd = 'var(--border2)';
+                  let circleColor = 'var(--text3)';
+                  let circleGlow = 'none';
+                  let titleColor = 'var(--text3)';
+
+                  if (isStepRejected) {
+                    circleBg = 'var(--red)';
+                    circleBd = 'var(--red)';
+                    circleColor = '#fff';
+                    circleGlow = '0 0 12px rgba(239, 68, 68, 0.45)';
+                    titleColor = 'var(--red)';
+                  } else if (isStepDone) {
+                    circleBg = 'var(--green)';
+                    circleBd = 'var(--green)';
+                    circleColor = '#fff';
+                    circleGlow = '0 2px 8px rgba(34,197,94,0.25)';
+                    titleColor = 'var(--green)';
+                  } else if (isStepActive) {
+                    circleBg = 'var(--orange)';
+                    circleBd = 'var(--orange)';
+                    circleColor = '#fff';
+                    circleGlow = '0 2px 8px rgba(249,115,22,0.25)';
+                    titleColor = 'var(--orange)';
+                  }
+
+                  const nextStep = activeSteps[i + 1];
+                  const nextState = nextStep ? getStepState(nextStep.key) : 'idle';
+                  const lineDone = isStepDone && (nextState === 'done' || nextState === 'active' || nextState === 'rejected');
+                  const lineRejected = nextState === 'rejected';
+
                   return (
                     <div key={step.key} style={{ display: 'flex', gap: 12 }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
                         <div style={{
-                          width: 30, height: 30, borderRadius: '50%',
-                          background: done ? 'var(--green)' : active ? 'var(--orange)' : 'var(--surface)',
-                          border: `2px solid ${done ? 'var(--green)' : active ? 'var(--orange)' : 'var(--border2)'}`,
+                          width: 32, height: 32, borderRadius: '50%',
+                          background: circleBg,
+                          border: `2px solid ${circleBd}`,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: done || active ? '#fff' : 'var(--text3)',
+                          color: circleColor,
                           fontWeight: 800, fontSize: 11,
-                          boxShadow: done ? '0 2px 8px rgba(34,197,94,0.25)' : active ? '0 2px 8px rgba(249,115,22,0.25)' : 'none',
+                          boxShadow: circleGlow,
                           flexShrink: 0,
+                          transition: 'all .25s ease',
                         }}>
-                          {done
-                            ? <Ic d={ICONS.check} size={12} sw={2.8} />
-                            : active
-                              ? <Ic d={ICONS.chevR} size={12} sw={2.5} />
-                              : <span>{i + 1}</span>
-                          }
+                          {isStepRejected ? (
+                            <span style={{ fontSize: 13, fontWeight: 900, lineHeight: 1 }}>✕</span>
+                          ) : isStepDone ? (
+                            <Ic d={ICONS.check} size={13} sw={2.8}/>
+                          ) : isStepActive ? (
+                            <Ic d={ICONS.chevR} size={13} sw={2.5}/>
+                          ) : (
+                            <span>{i + 1}</span>
+                          )}
                         </div>
-                        {i < STEPS.length - 1 && (
+                        {!isLast && (
                           <div style={{
-                            width: 2, flexGrow: 1, minHeight: 18,
-                            background: done ? 'var(--green)' : 'var(--border2)',
-                            opacity: done ? 0.4 : 0.6, margin: '3px 0',
-                          }} />
+                            width: 2, flexGrow: 1, minHeight: 22,
+                            background: lineRejected ? 'var(--red)' : lineDone ? 'var(--green)' : 'var(--border2)',
+                            opacity: lineRejected ? 0.7 : lineDone ? 0.5 : 0.6,
+                            margin: '3px 0',
+                            transition: 'all .25s ease',
+                          }}/>
                         )}
                       </div>
 
-                      <div style={{ paddingTop: 5, paddingBottom: i < STEPS.length - 1 ? 14 : 0, minWidth: 0 }}>
-                        <p style={{
-                          fontSize: 13, fontWeight: 700, margin: 0,
-                          color: done ? 'var(--green)' : active ? 'var(--orange)' : 'var(--text3)',
-                          lineHeight: 1.4,
-                        }}>{step.label}</p>
-                        {tItem && (
-                          <p style={{ fontSize: 10, color: 'var(--text3)', margin: '2px 0 0' }}>
-                            {new Date(tItem.time).toLocaleString('en-IN')}
-                            {tItem.by && <span style={{ opacity: 0.7 }}> · {tItem.by}</span>}
-                          </p>
-                        )}
+                      <div style={{
+                        paddingTop: 4,
+                        paddingBottom: !isLast ? 14 : 0,
+                        minWidth: 0,
+                        flex: 1,
+                      }}>
+                        <div style={{
+                          padding: isStepRejected ? '9px 12px' : '0',
+                          borderRadius: isStepRejected ? 10 : 0,
+                          background: isStepRejected ? 'var(--redBg)' : 'transparent',
+                          border: isStepRejected ? '1.5px solid var(--redBd)' : 'none',
+                          transition: 'all .25s ease',
+                          boxShadow: isStepRejected ? '0 2px 10px rgba(239, 68, 68, 0.12)' : 'none',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <p style={{
+                              fontSize: 13, fontWeight: 800, margin: 0,
+                              color: titleColor,
+                              lineHeight: 1.4,
+                            }}>{step.label}</p>
+                            {isStepRejected && (
+                              <span style={{
+                                fontSize: 9, fontWeight: 900, letterSpacing: 0.8,
+                                padding: '2px 7px', borderRadius: 20,
+                                background: 'var(--red)', color: '#fff',
+                                textTransform: 'uppercase',
+                              }}>
+                                Rejected
+                              </span>
+                            )}
+                          </div>
+                          {tItem && (
+                            <p style={{
+                              fontSize: 10,
+                              color: isStepRejected ? 'var(--red)' : 'var(--text3)',
+                              margin: '3px 0 0',
+                              opacity: isStepRejected ? 0.9 : 0.8,
+                              fontWeight: isStepRejected ? 600 : 400,
+                            }}>
+                              {tItem.time ? new Date(tItem.time.toDate ? tItem.time.toDate() : tItem.time).toLocaleString('en-IN') : ''}
+                              {tItem.by && <span> · {tItem.by}</span>}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -841,7 +1032,7 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
                   }}>
-                    <Ic d={ICONS.check} size={16} sw={3} style={{ color: '#fff' }} />
+                    <Ic d={ICONS.check} size={16} sw={3} style={{ color: '#fff' }}/>
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <p style={{ fontSize: 10, color: 'var(--text3)', margin: '0 0 2px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8 }}>
@@ -852,7 +1043,7 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
                       color: 'var(--accent)',
                       margin: 0, wordBreak: 'break-word',
                     }}>
-                      {issue.assignedTo || 'Unassigned'}
+                      {currentIssue.assignedTo || 'Unassigned'}
                     </p>
                   </div>
                 </div>
@@ -869,7 +1060,7 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         color: '#fff', flexShrink: 0, marginTop: 1,
                       }}>
-                        <Ic d={ICONS.warn} size={15} sw={2.5} />
+                        <Ic d={ICONS.warn} size={15} sw={2.5}/>
                       </div>
                       <div>
                         <p style={{ margin: 0, fontWeight: 800, fontSize: 12, color: 'var(--red)' }}>
@@ -909,7 +1100,7 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
                     onClick={() => { if (dept) updateStatus('assigned', { assignedTo: dept }, 'Sent to Department'); }}
                   />
 
-                  {issue.assignedTo && (
+                  {currentIssue.assignedTo && (
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       padding: '9px 12px',
@@ -918,14 +1109,14 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
                       borderRadius: 9, fontSize: 12,
                     }}>
                       <span style={{ color: 'var(--text3)', fontSize: 11 }}>Currently:</span>
-                      <span style={{ fontWeight: 700, color: 'var(--text)' }}>{issue.assignedTo}</span>
+                      <span style={{ fontWeight: 700, color: 'var(--text)' }}>{currentIssue.assignedTo}</span>
                     </div>
                   )}
                 </div>
               )}
             </Section>
 
-            {isHOD && issue.assignedTo === user.department && !tl.find(t => t.step === 'Assigned') && (
+            {isHOD && currentIssue.assignedTo === user.department && !tl.find(t => t.step === 'Assigned') && (
               <Section label="Immediate Actions">
                 <PremiumBtn
                   label="Acknowledge & Accept"
@@ -995,7 +1186,7 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
                   transition: 'all .2s',
                 }}
               >
-                <Ic d={ICONS.note} size={13} />
+                <Ic d={ICONS.note} size={13}/>
                 Save Note
               </button>
             </Section>
@@ -1007,15 +1198,15 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {[
                   { s: 'in_progress', label: 'In Progress', ...STATUS.in_progress },
-                  { s: 'resolved', label: 'Resolved', ...STATUS.resolved },
-                  { s: 'rejected', label: 'Reject', ...STATUS.rejected },
-                  { s: 'open', label: 'Reopen', ...STATUS.open },
+                  { s: 'resolved',    label: 'Resolved',    ...STATUS.resolved    },
+                  { s: 'rejected',    label: 'Reject',      ...STATUS.rejected    },
+                  { s: 'open',        label: 'Reopen',      ...STATUS.open        },
                 ].map(a => (
                   <ActBtn
                     key={a.s}
                     label={a.label}
                     color={a.color} bg={a.bg} bd={a.bd}
-                    active={issue.status === a.s}
+                    active={currentIssue.status === a.s}
                     disabled={saving}
                     onClick={() => updateStatus(a.s)}
                   />
@@ -1030,7 +1221,7 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
                     key={key}
                     label={p.label}
                     color={p.color} bg={p.bg} bd={p.bd}
-                    active={issue.priority === key}
+                    active={currentIssue.priority === key}
                     disabled={saving}
                     onClick={() => setPrio(key)}
                   />
@@ -1051,21 +1242,21 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
               </p>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 11, color: 'var(--text3)' }}>Status</span>
-                <SBadge status={issue.status} />
+                <SBadge status={currentIssue.status}/>
               </div>
-              {issue.priority && (
+              {currentIssue.priority && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: 11, color: 'var(--text3)' }}>Priority</span>
-                  <PBadge priority={issue.priority} />
+                  <PBadge priority={currentIssue.priority}/>
                 </div>
               )}
-              {issue.assignedTo && (
+              {currentIssue.assignedTo && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                   <span style={{ fontSize: 11, color: 'var(--text3)', flexShrink: 0 }}>Dept.</span>
                   <span style={{
                     fontSize: 11, fontWeight: 700, color: 'var(--text)',
                     textAlign: 'right', wordBreak: 'break-word',
-                  }}>{issue.assignedTo}</span>
+                  }}>{currentIssue.assignedTo}</span>
                 </div>
               )}
             </div>
@@ -1100,3 +1291,4 @@ export default memo(function ViewComplaint({ issue, user, onClose, onDelete }) {
     </div>
   );
 });
+
