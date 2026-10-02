@@ -1,0 +1,31 @@
+artifact_root: artifacts
+detector:
+  input_size: [512, 512]
+  confidence_threshold: 0.35
+  nms_iou_threshold: 0.45
+  quantization_modes:
+    - int8
+    - dynamic
+  representative_dataset_dir: data/export_calibration/detector
+  metadata:
+    name: Jansampark Civic Detector
+    description: Mobile detector for civic issues trained on YOLOv10 Nano.
+classifier:
+  input_size: [224, 224]
+  quantization_modes:
+    - int8
+    - float32
+  representative_dataset_dir: data/export_calibration/classifier
+  metadata:
+    name: Jansampark Waste Classifier
+    description: EfficientNet-B0 classifier for civic waste categories.
+channel_order: RGB
+normalization:
+  detector:
+    scale: 255.0
+    mean: [0.0, 0.0, 0.0]
+    std: [1.0, 1.0, 1.0]
+  classifier:
+    scale: 255.0
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]

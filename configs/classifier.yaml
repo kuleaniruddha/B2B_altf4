@@ -1,0 +1,22 @@
+dataset_dir: data/waste_classifier
+project_dir: runs/classifier
+experiment_name: waste_classifier_b0
+image_size: 224
+batch_size: 32
+warmup_epochs: 5
+fine_tune_epochs: 15
+learning_rate: 0.001
+fine_tune_learning_rate: 0.0001
+validation_split: 0.15
+seed: 42
+classes:
+  - plastic
+  - paper_cardboard
+  - glass
+  - metal
+  - organic
+  - textile
+  - e_waste
+  - construction_debris
+  - rubber
+  - mixed_waste

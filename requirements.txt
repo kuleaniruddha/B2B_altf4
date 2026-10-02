@@ -1,0 +1,15 @@
+Pillow>=10.0.0
+PyYAML>=6.0.1
+numpy>=1.26.0
+tensorflow>=2.15.0
+ultralytics>=8.3.0
+onnx>=1.16.0
+onnx2tf>=1.26.3
+imagehash>=4.3.1
+tflite-support>=0.4.4
+google-cloud-firestore>=2.16.0
+google-cloud-aiplatform>=1.67.0
+fastapi>=0.115.0
+uvicorn>=0.32.0
+python-multipart>=0.0.12
+transformers>=4.48.0

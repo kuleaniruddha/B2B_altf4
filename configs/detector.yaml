@@ -1,0 +1,20 @@
+model_name: yolov10n.pt
+fallback_model_name: yolov10n.pt
+dataset_yaml: data/civic_issue_dataset.yaml
+project_dir: runs/detector
+experiment_name: civic_detector
+imgsz: 512
+epochs: 75
+batch: 16
+device: cpu
+patience: 15
+workers: 4
+classes:
+  - pothole
+  - garbage_dump
+  - broken_streetlight
+  - overflowing_bin
+  - drainage_issue
+confidence_threshold: 0.35
+nms_iou_threshold: 0.45
+onnx_opset: 13

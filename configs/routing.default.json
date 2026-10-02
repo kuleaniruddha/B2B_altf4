@@ -1,0 +1,15 @@
+{
+  "labelMap": {
+    "pothole": "Road Department",
+    "road_damage": "Road Department",
+    "garbage_dump": "Sanitation Department",
+    "overflowing_bin": "Sanitation Department",
+    "broken_streetlight": "Electric Department",
+    "drainage_issue": "Water Supply",
+    "water_leak": "Water Supply",
+    "traffic_signal": "Traffic Control",
+    "fallen_tree": "Tree Authority",
+    "encroachment": "General Administration"
+  },
+  "reviewQueueDepartmentId": "General Administration"
+}

@@ -1,0 +1,17 @@
+.venv312/
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.log
+*.pid
+.pytest_cache/
+.tmp/
+tmp*/
+.vscode/
+uploads/
+node_modules/
+dist/
+build/
+.env
+.env.local
