@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jansampark AI Console</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Jansampark Civic Intelligence</p>
+        <h1>Upload a street image and inspect classification, trust, duplicate detection, and routing in one place.</h1>
+        <p class="subcopy">
+          This local app runs the Jansampark pipeline demo on localhost and returns issue label, confidence, waste subtype, image authenticity, dHash-based dedupe, and department routing.
+        </p>
+      </div>
+      <div class="hero-card">
+        <div class="metric">
+          <span>Pipeline</span>
+          <strong>Detector + Auth + Dedupe + Routing</strong>
+        </div>
+        <div class="metric">
+          <span>Mode</span>
+          <strong>Local Demo</strong>
+        </div>
+        <div class="metric">
+          <span>Output</span>
+          <strong>Complete report analysis</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <form id="upload-form" class="panel form-panel">
+        <div class="panel-header">
+          <h2>Analyze Issue</h2>
+          <p>Upload a civic issue image and optionally set GPS coordinates for duplicate detection.</p>
+        </div>
+
+        <label class="dropzone" for="image-input">
+          <input id="image-input" name="image" type="file" accept="image/*" required />
+          <span id="dropzone-text">Choose an image or drag it here</span>
+          <img id="preview" alt="Upload preview" hidden />
+        </label>
+
+        <div class="grid">
+          <label>
+            <span>Latitude</span>
+            <input id="lat" name="lat" type="number" step="any" value="12.9716" required />
+          </label>
+          <label>
+            <span>Longitude</span>
+            <input id="lon" name="lon" type="number" step="any" value="77.5946" required />
+          </label>
+        </div>
+
+        <button id="submit-btn" type="submit">Run Analysis</button>
+        <p id="status" class="status"></p>
+      </form>
+
+      <section class="panel results-panel">
+        <div class="panel-header">
+          <h2>Result</h2>
+          <p>The full Jansampark report payload appears here after analysis.</p>
+        </div>
+
+        <div id="empty-state" class="empty-state">
+          Upload an image to see classification, authenticity checks, duplicate detection, and Firestore department routing.
+        </div>
+
+        <div id="results" hidden>
+          <div class="result-top">
+            <div class="badge-stack">
+              <span id="issue-badge" class="badge"></span>
+              <span id="severity-badge" class="badge badge-secondary"></span>
+              <span id="trust-badge" class="badge badge-muted"></span>
+            </div>
+            <div class="report-meta">
+              <p><strong>Report ID:</strong> <span id="report-id"></span></p>
+              <p><strong>Department:</strong> <span id="department-id"></span></p>
+            </div>
+          </div>
+
+          <div class="cards">
+            <article class="info-card">
+              <h3>Classification</h3>
+              <ul>
+                <li><strong>Issue:</strong> <span id="issue-label"></span></li>
+                <li><strong>Confidence:</strong> <span id="issue-confidence"></span></li>
+                <li><strong>Waste subtype:</strong> <span id="waste-label"></span></li>
+                <li><strong>Inference mode:</strong> <span id="inference-mode"></span></li>
+              </ul>
+            </article>
+            <article class="info-card">
+              <h3>Authenticity</h3>
+              <ul>
+                <li><strong>Score:</strong> <span id="auth-score"></span></li>
+                <li><strong>EXIF present:</strong> <span id="auth-exif"></span></li>
+                <li><strong>GPS present:</strong> <span id="auth-gps"></span></li>
+                <li><strong>Reasons:</strong> <span id="auth-reasons"></span></li>
+              </ul>
+            </article>
+            <article class="info-card">
+              <h3>Duplicate Check</h3>
+              <ul>
+                <li><strong>dHash:</strong> <span id="hash-value"></span></li>
+                <li><strong>Duplicate of:</strong> <span id="duplicate-of"></span></li>
+                <li><strong>Review required:</strong> <span id="review-required"></span></li>
+              </ul>
+            </article>
+            <article class="info-card">
+              <h3>Latency</h3>
+              <ul>
+                <li><strong>Detector:</strong> <span id="lat-detector"></span></li>
+                <li><strong>Classifier:</strong> <span id="lat-classifier"></span></li>
+                <li><strong>Total:</strong> <span id="lat-total"></span></li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="json-block">
+            <h3>Raw Report JSON</h3>
+            <pre id="raw-json"></pre>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

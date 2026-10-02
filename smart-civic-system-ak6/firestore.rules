@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ─── Helpers ───
+    
+    // isSuper: Admins and Super Admins
+    function isSuper() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['super_admin', 'admin'];
+    }
+    
+    // isHOD: Departmental Heads
+    function isHOD() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'hod';
+    }
+
+    // ─── Issues Collection ───
+    match /issues/{issueId} {
+      // Citizens: can create and read (to support tracking)
+      // HODs: can read and update if assigned to their department
+      // Admins: full access
+      
+      allow read, create: if request.auth != null;
+      
+      // Update logic: Super Admin OR HOD of the matching department
+      allow update: if isSuper() || (
+        isHOD() && 
+        resource.data.assignedTo == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.department
+      );
+      
+      allow delete: if isSuper();
+    }
+
+    // ─── Users Collection ───
+    match /users/{userId} {
+      // Allow profile reads (essential for HOD login email lookup & auth checks)
+      allow read: if request.auth != null;
+      
+      // Allow users to manage their own document OR Admin access
+      allow write: if request.auth != null && (request.auth.uid == userId || isSuper());
+      
+      // Allow cleanup of temporary email-based seed documents during migration
+      allow delete: if request.auth != null && (
+        isSuper() || 
+        (resource.data.email != null && resource.data.email == request.auth.token.email)
+      );
+    }
+  }
+}
