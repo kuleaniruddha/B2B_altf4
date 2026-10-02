@@ -15,7 +15,8 @@ The system is built across three primary tiers:
 graph TD
     subgraph "Core AI & Backend"
         AI[AI Engine - Schemas & Routing]
-        API[Inference Endpoints]
+        API[FastAPI Inference Endpoints]
+        Runner[run_local_api.py Entrypoint]
     end
 
     subgraph "Admin & Citizen Portals"
@@ -30,45 +31,47 @@ graph TD
 
 ---
 
-## 📁 Repository Structure (Initial Setup)
+## 🚀 AI Backend & Local Inference Server
+
+The Python backend provides a high-throughput FastAPI service powered by CLIP zero-shot classification and custom civic issue routing rules.
+
+### Running the Local API Server
+```bash
+# Activate your virtual environment
+.\venv\Scripts\activate
+
+# Launch the FastAPI inference server
+python run_local_api.py
+```
+The server will start on `http://127.0.0.1:8000` (or `http://localhost:8000`).
+
+### Available Endpoints
+- `GET /health` — Service health check and loaded model status.
+- `POST /analyze-image` — Multipart form-data image upload. Evaluates authenticity, category predictions (pothole, garbage, streetlight, water leakage), and confidence scores.
+- `GET /categories` — List of supported civic issue classes and assigned department routes.
+
+---
+
+## 📁 Repository Structure
 
 ```text
 ├── configs/               # Model classifier, detector, and routing configurations
-│   ├── classifier.yaml
-│   ├── detector.yaml
-│   ├── export.yaml
-│   └── routing.default.json
-├── jansampark_ai/         # Core AI package
+├── jansampark_ai/         # Core AI & backend package
+│   ├── backend/           # Server utilities & Firestore bridge
 │   ├── configs/           # Configuration loaders
+│   ├── export/            # Model export pipelines (TFLite / ONNX)
 │   ├── routing/           # Department routing rules
 │   ├── schemas/           # Common data schemas & models
-│   ├── utils/             # Helper utilities
-│   └── validation/        # Image integrity and deduplication checks
-├── tests/                 # Unit test suite
+│   ├── training/          # Model fine-tuning scripts
+│   ├── utils/             # Image & geo processing helpers
+│   ├── validation/        # Image integrity and deduplication checks
+│   ├── local_api.py       # FastAPI application
+│   └── webapp.py          # Local web server interface
+├── tests/                 # Unit and integration test suite
+├── demo_garbage.png       # Test fixture image (garbage)
+├── demo_test_image.png    # Test fixture image (civic issue)
+├── run_local_api.py       # Entry point runner script
 ├── .gitignore
 ├── README.md
 └── requirements.txt
 ```
-
----
-
-## 🚀 Setup & Installation
-
-1. Create and activate a Python virtual environment:
-   ```bash
-   python -m venv venv
-   # Windows
-   .\venv\Scripts\activate
-   # Linux/macOS
-   source venv/bin/activate
-   ```
-
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Run verification tests:
-   ```bash
-   pytest
-   ```
