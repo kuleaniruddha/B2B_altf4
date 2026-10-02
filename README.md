@@ -8,7 +8,7 @@ A modular, AI-powered civic issue reporting and administration platform. JanSamp
 
 The system is built across three primary tiers:
 1. **AI Pipeline & Backend**: Core computer vision and classification engine with automated departmental routing.
-2. **Admin Dashboard**: Real-time management portal for civic authorities to triage and resolve reports.
+2. **Admin Dashboard**: Real-time management portal for civic authorities to triage, inspect AI confidence scores, and resolve reports.
 3. **Citizen Application**: Mobile interface for capturing geotagged, authenticated civic complaints.
 
 ```mermaid
@@ -20,7 +20,7 @@ graph TD
     end
 
     subgraph "Admin & Citizen Portals"
-        Admin[Civic Admin Dashboard]
+        Admin[Civic Admin Dashboard - React/Vite]
         Citizen[Citizen Mobile Client]
     end
 
@@ -43,12 +43,25 @@ The Python backend provides a high-throughput FastAPI service powered by CLIP ze
 # Launch the FastAPI inference server
 python run_local_api.py
 ```
-The server will start on `http://127.0.0.1:8000` (or `http://localhost:8000`).
+The server will start on `http://127.0.0.1:8000`.
 
-### Available Endpoints
-- `GET /health` — Service health check and loaded model status.
-- `POST /analyze-image` — Multipart form-data image upload. Evaluates authenticity, category predictions (pothole, garbage, streetlight, water leakage), and confidence scores.
-- `GET /categories` — List of supported civic issue classes and assigned department routes.
+---
+
+## 🖥️ Smart Civic Admin Web App
+
+The administrative dashboard provides civic authorities with real-time issue streams, department-wise task allocation, and automated AI image analysis.
+
+### Running the Admin Dashboard
+```bash
+cd smart-civic-system-ak6/smart-civic-admin
+
+# Install dependencies
+npm install
+
+# Start Vite development server
+npm run dev
+```
+The dashboard runs at `http://localhost:5173`.
 
 ---
 
@@ -57,16 +70,14 @@ The server will start on `http://127.0.0.1:8000` (or `http://localhost:8000`).
 ```text
 ├── configs/               # Model classifier, detector, and routing configurations
 ├── jansampark_ai/         # Core AI & backend package
-│   ├── backend/           # Server utilities & Firestore bridge
-│   ├── configs/           # Configuration loaders
-│   ├── export/            # Model export pipelines (TFLite / ONNX)
-│   ├── routing/           # Department routing rules
-│   ├── schemas/           # Common data schemas & models
-│   ├── training/          # Model fine-tuning scripts
-│   ├── utils/             # Image & geo processing helpers
-│   ├── validation/        # Image integrity and deduplication checks
-│   ├── local_api.py       # FastAPI application
-│   └── webapp.py          # Local web server interface
+├── smart-civic-system-ak6/
+│   └── smart-civic-admin/ # React + Vite Admin Web Dashboard
+│       ├── public/
+│       ├── src/
+│       │   ├── components/ # AdminLayout, SharedUI, ViewComplaint
+│       │   ├── pages/      # Dashboard, Complaints, Analytics, Users, LoginPage
+│       │   └── firebase.js # Firestore & Auth configuration
+│       └── package.json
 ├── tests/                 # Unit and integration test suite
 ├── demo_garbage.png       # Test fixture image (garbage)
 ├── demo_test_image.png    # Test fixture image (civic issue)

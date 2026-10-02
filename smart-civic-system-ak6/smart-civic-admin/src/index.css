@@ -1,0 +1,244 @@
+/* ─── Reset ────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ─── Design tokens ────────────────────────────────────────────────────────── */
+:root {
+  --font-sans: "Google Sans", "Google Sans Text", "Google Sans Display", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Google Sans", "Google Sans Display", "Google Sans Text", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* Surfaces */
+  --bg:       #eef2f8;
+  --surface:  rgba(255, 255, 255, 0.78);
+  --surface2: rgba(255, 255, 255, 0.58);
+  --surfaceHover: rgba(255, 255, 255, 0.92);
+  --border:   rgba(255, 255, 255, 0.72);
+  --border2:  rgba(196, 206, 224, 0.95);
+  --borderHl: rgba(255, 255, 255, 0.96);
+  --glass: rgba(255, 255, 255, 0.5);
+
+  /* Text */
+  --text:     #101828;
+  --text2:    #5d6b82;
+  --text3:    #8a97aa;
+  --textMuted:#bcc6d7;
+
+  /* Brand */
+  --accent:   #f0641e;
+  --accentL:  #ff9c52;
+  --accentBg: rgba(255, 134, 73, 0.12);
+  --accentBd: rgba(255, 153, 102, 0.26);
+  --accentGl: rgba(240, 100, 30, 0.18);
+
+  /* Semantic colours */
+  --blue:      #2573ff;  --blueBg:   rgba(78, 134, 255, 0.12);  --blueBd:   rgba(78, 134, 255, 0.24);
+  --green:     #18a957;  --greenBg:  rgba(72, 199, 116, 0.12);  --greenBd:  rgba(72, 199, 116, 0.25);
+  --orange:    #f27a2e;  --orangeBg: rgba(242, 122, 46, 0.12);  --orangeBd: rgba(242, 122, 46, 0.24);
+  --red:       #e04848;  --redBg:    rgba(224, 72, 72, 0.11);   --redBd:    rgba(224, 72, 72, 0.22);
+  --yellow:    #c99311;  --yellowBg: rgba(201, 147, 17, 0.12);  --yellowBd: rgba(201, 147, 17, 0.24);
+  --purple:    #7367f0;  --purpleBg: rgba(115, 103, 240, 0.12); --purpleBd: rgba(115, 103, 240, 0.24);
+  --teal:      #0f9c96;  --tealBg:   rgba(15, 156, 150, 0.12);  --tealBd:   rgba(15, 156, 150, 0.24);
+  --pink:      #d94692;  --pinkBg:   rgba(217, 70, 146, 0.12);  --pinkBd:   rgba(217, 70, 146, 0.24);
+
+  /* Elevation */
+  --sh:    0 10px 30px rgba(15, 23, 42, 0.06), 0 2px 10px rgba(15, 23, 42, 0.04);
+  --shMd:  0 18px 40px rgba(15, 23, 42, 0.08), 0 6px 18px rgba(15, 23, 42, 0.04);
+  --shHover: 0 24px 48px rgba(15, 23, 42, 0.12);
+  --shAccent: 0 16px 36px rgba(240, 100, 30, 0.22);
+  --shModal: 0 40px 90px rgba(15, 23, 42, 0.2);
+}
+
+[data-theme="dark"] {
+  /* Surfaces */
+  --bg:       #0f172a;
+  --surface:  #1e293b;
+  --surface2: #334155;
+  --surfaceHover: #1e293b;
+  --border:   #334155;
+  --border2:  #475569;
+  --borderHl: #1e293b;
+
+  /* Text */
+  --text:     #f8fafc;
+  --text2:    #94a3b8;
+  --text3:    #64748b;
+  --textMuted:#475569;
+
+  /* Brand */
+  --accent:   #ff8f00;   /* brighter orange for dark mode readability */
+  --accentL:  #ffb300;
+  --accentBg: rgba(255, 143, 0, 0.1);
+  --accentBd: rgba(255, 143, 0, 0.3);
+  --accentGl: rgba(255, 143, 0, 0.2);
+
+  /* Semantic colours */
+  --blue:      #60a5fa;  --blueBg:   rgba(37, 99, 235, 0.15);  --blueBd:   rgba(37, 99, 235, 0.3);
+  --green:     #4ade80;  --greenBg:  rgba(22, 163, 74, 0.15);  --greenBd:  rgba(22, 163, 74, 0.3);
+  --orange:    #fb923c;  --orangeBg: rgba(234, 88, 12, 0.15);  --orangeBd: rgba(234, 88, 12, 0.3);
+  --red:       #f87171;  --redBg:    rgba(220, 38, 38, 0.15);  --redBd:    rgba(220, 38, 38, 0.3);
+  --yellow:    #facc15;  --yellowBg: rgba(202, 138, 4, 0.15);  --yellowBd: rgba(202, 138, 4, 0.3);
+  --purple:    #a78bfa;  --purpleBg: rgba(124, 58, 237, 0.15); --purpleBd: rgba(124, 58, 237, 0.3);
+  --teal:      #2dd4bf;  --tealBg:   rgba(13, 148, 136, 0.15); --tealBd:   rgba(13, 148, 136, 0.3);
+  --pink:      #f472b6;  --pinkBg:   rgba(219, 39, 119, 0.15); --pinkBd:   rgba(219, 39, 119, 0.3);
+
+  /* Elevation */
+  --sh:    0 1px 4px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
+  --shMd:  0 2px 8px rgba(0,0,0,.25);
+  --shHover: 0 10px 28px rgba(0,0,0,0.4);
+  --shAccent: 0 8px 24px rgba(255, 143, 0, 0.15);
+  --shModal: 0 32px 80px rgba(0,0,0,0.6);
+}
+
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
+html, body {
+  height: 100%;
+  overflow: hidden; /* layout is scroll-within-panels */
+}
+
+body {
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(circle at top left, rgba(255, 188, 156, 0.36), transparent 28%),
+    radial-gradient(circle at top right, rgba(143, 188, 255, 0.26), transparent 26%),
+    linear-gradient(180deg, #f8f9fc 0%, var(--bg) 100%);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  letter-spacing: -0.01em;
+}
+
+div, header, main, aside, nav, button, input, select, textarea {
+  transition-property: background-color, border-color, box-shadow, color;
+  transition-duration: 0.3s;
+  transition-timing-function: ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+input, select, textarea {
+  font-family: inherit;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+#root {
+  height: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  border-radius: 14px;
+}
+
+aside,
+header,
+main > div > div,
+section,
+article {
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+::selection {
+  background: rgba(240, 100, 30, 0.18);
+  color: var(--text);
+}
+
+/* Remove default outline — components define their own focus styles */
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar            { width: 5px; height: 5px; }
+::-webkit-scrollbar-track      { background: transparent; }
+::-webkit-scrollbar-thumb      { background: var(--border2); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover{ background: #b0b9d0; }
+
+/* ─── Keyframes ─────────────────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1;    }
+  50%       { opacity: 0.4; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+/* ─── Utility classes ───────────────────────────────────────────────────────── */
+/* Entrance animations */
+.fu  { animation: fadeUp  .42s cubic-bezier(.16,1,.3,1) both; }
+.fi  { animation: fadeIn  .30s ease both; }
+.si  { animation: scaleIn .28s cubic-bezier(.16,1,.3,1) both; }
+
+/* Stagger delays */
+.d1 { animation-delay: .05s; }
+.d2 { animation-delay: .10s; }
+.d3 { animation-delay: .15s; }
+.d4 { animation-delay: .20s; }
+.d5 { animation-delay: .25s; }
+.d6 { animation-delay: .30s; }
+
+/* Continuous */
+.spin  { animation: spin   .8s  linear   infinite; }
+.pulse { animation: pulse  1.8s ease     infinite; }
+
+/* Skeleton loading placeholder */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f2f8 25%,
+    #e8eaf2 50%,
+    #f0f2f8 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.5s linear infinite;
+  border-radius: 8px;
+}
