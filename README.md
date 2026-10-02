@@ -1,130 +1,166 @@
-﻿# JanSampark AI — Smart Civic Infrastructure 🏛️🤖
+﻿# JanSampark AI - Smart Civic Infrastructure
 
-A modular, AI-powered civic issue reporting and administration platform. JanSampark AI connects citizens reporting municipal issues (e.g., potholes, garbage overflow, broken streetlights) directly to administrative departments through automated verification and routing.
+A modular, AI-powered civic issue reporting and municipal administration platform. JanSampark AI connects citizens reporting municipal issues (such as potholes, garbage accumulation, water leaks, or broken streetlights) directly to administrative departments through automated computer vision verification and routing.
 
 ---
 
-## 🏗️ Architecture Overview
-
-The system is built across three primary tiers:
-1. **AI Pipeline & Backend**: Core computer vision and classification engine with automated departmental routing.
-2. **Admin Dashboard**: Real-time management portal for civic authorities to triage, inspect AI confidence scores, and resolve reports.
-3. **Citizen Mobile App**: Cross-platform Flutter mobile client for capturing geotagged, authenticated civic complaints with live GPS and camera integration.
-4. **Web Demo Portal**: Zero-dependency frontend for rapid testing and demonstrations.
+## Project Architecture
 
 ```mermaid
 graph TD
-    subgraph "Core AI & Backend"
-        AI[AI Engine - Schemas & Routing]
-        API[FastAPI Inference Endpoints]
-        Runner[run_local_api.py Entrypoint]
+    subgraph "Mobile Layer"
+        C[Citizen Mobile App - Flutter]
     end
 
-    subgraph "Admin & Citizen Portals"
-        Admin[Civic Admin Dashboard - React/Vite]
-        Demo[Standalone Web Demo - HTML/JS]
-        Citizen[Citizen Mobile Client - Flutter]
+    subgraph "AI & Backend Layer"
+        B[FastAPI Backend]
+        AI[AI Pipeline - CLIP / TFLite]
+        D[Standalone Web Demo - HTML/JS]
     end
 
-    Citizen --> API
-    Demo --> API
-    API --> AI
-    Admin --> API
+    subgraph "Admin Layer"
+        A[Admin Dashboard - React/Vite]
+    end
+
+    subgraph "Cloud & Storage"
+        F[(Firestore Database)]
+        V[Model Inference Service]
+    end
+
+    C -->|Submit Report| B
+    D -->|Test Analysis| B
+    B -->|Verify and Route| AI
+    AI -->|Fetch Predictions| V
+    B -->|Persist Data| F
+    A -->|Manage Issues| F
 ```
 
 ---
 
-## 📱 Citizen Mobile App (`/smart-civic-system-ak6/citizen_app`)
-
-Cross-platform mobile client built using Flutter (supporting Android, iOS, Web, and Desktop). Allows citizens to snap photos of municipal issues, attach geotags, monitor progress, and receive resolution alerts.
-
-### Mobile Features
-- **Issue Reporting**: Camera capture with real-time location resolution and image authenticity hashing.
-- **Status Tracking**: Track complaint lifecycle (Submitted -> Verified -> Assigned -> Resolved).
-- **Multilingual Support**: Built-in localization support for regional languages.
-- **On-Device Reference**: `mobile_reference/` contains standalone Dart services for offline image authenticity checks and local classification.
-
-### Running the Mobile App
-```bash
-cd smart-civic-system-ak6/citizen_app
-
-# Fetch dependencies
-flutter pub get
-
-# Launch app (select emulator or connected device)
-flutter run
-```
-
----
-
-## 🚀 AI Backend & Local Inference Server
-
-The Python backend provides a high-throughput FastAPI service powered by CLIP zero-shot classification and custom civic issue routing rules.
-
-### Running the Local API Server
-```bash
-# Activate your virtual environment
-.\venv\Scripts\activate
-
-# Launch the FastAPI inference server
-python run_local_api.py
-```
-The server will start on `http://127.0.0.1:8000`.
-
----
-
-## 🖥️ Smart Civic Admin Web App
-
-The administrative dashboard provides civic authorities with real-time issue streams, department-wise task allocation, and automated AI image analysis.
-
-### Running the Admin Dashboard
-```bash
-cd smart-civic-system-ak6/smart-civic-admin
-
-# Install dependencies
-npm install
-
-# Start Vite development server
-npm run dev
-```
-The dashboard runs at `http://localhost:5173`.
-
----
-
-## 🌐 Standalone Demo Web Portal (`/frontend`)
-
-A lightweight, zero-dependency HTML5/CSS/JavaScript client designed for quick image testing, drag-and-drop analysis, and category prediction inspection.
-
-- **Direct Launch**: Open `frontend/index.html` in any web browser.
-- **Integrated Mode**: Served directly through the FastAPI backend at `http://127.0.0.1:8000/`.
-
----
-
-## 🔒 Security & Firestore Rules
-
-`smart-civic-system-ak6/firestore.rules` defines fine-grained access control:
-- Citizens can create issues and view public resolutions.
-- Admin & HOD roles can update complaint statuses, reassign departments, and close tickets.
-- Automated rate limiting and field validation schemas.
-
----
-
-## 📁 Repository Structure
+## Repository Structure
 
 ```text
-├── configs/               # Model classifier, detector, and routing configurations
-├── frontend/              # Standalone web testing portal (HTML/CSS/JS)
-├── jansampark_ai/         # Core AI & backend package
-├── mobile_reference/      # On-device Dart AI & verification reference services
+├── configs/                     # Model classifier, detector, and routing configurations
+│   ├── classifier.yaml
+│   ├── detector.yaml
+│   ├── export.yaml
+│   └── routing.default.json
+├── frontend/                    # Standalone zero-dependency web demo client
+│   ├── app.js
+│   ├── index.html
+│   └── styles.css
+├── jansampark_ai/               # Core AI & backend package
+│   ├── backend/                 # Database bridge and store implementations
+│   ├── configs/                 # Config file loaders
+│   ├── export/                  # TFLite / ONNX export pipelines
+│   ├── routing/                 # Department auto-routing rules
+│   ├── schemas/                 # Pydantic schemas and data contracts
+│   ├── training/                # Training & fine-tuning routines
+│   ├── utils/                   # Geo-spatial, image, and Firestore utilities
+│   ├── validation/              # Authenticity, dHash, and deduplication
+│   ├── local_api.py             # FastAPI service endpoints
+│   └── webapp.py                # Local web server runner
+├── mobile_reference/            # Reference Dart services for on-device inference
+│   └── lib/
 ├── smart-civic-system-ak6/
-│   ├── citizen_app/       # Cross-platform Flutter mobile client
-│   ├── firestore.rules    # Firebase security rules
-│   └── smart-civic-admin/ # React + Vite Admin Web Dashboard
-├── tests/                 # Unit and integration test suite
-├── demo_garbage.png       # Test fixture image (garbage)
-├── demo_test_image.png    # Test fixture image (civic issue)
-├── run_local_api.py       # Entry point runner script
+│   ├── citizen_app/             # Flutter cross-platform mobile client
+│   ├── smart-civic-admin/       # React + Vite administrative dashboard
+│   └── firestore.rules          # Firebase security rules
+├── tests/                       # Unit and integration test suite
+├── demo_garbage.png             # Test image fixture
+├── demo_test_image.png          # Test image fixture
+├── run_local_api.py             # Root backend launch script
 ├── .gitignore
 ├── README.md
 └── requirements.txt
 ```
+
+---
+
+## Subsystems and Setup
+
+### 1. AI Backend and Inference API (Root)
+
+The core Python service handles image authentication, deduplication, CLIP zero-shot classification, and department routing.
+
+- **Stack**: FastAPI, PyTorch, HuggingFace Transformers (CLIP), Uvicorn.
+- **Setup**:
+  ```bash
+  python -m venv venv
+  # Windows:
+  .\venv\Scripts\activate
+  # Linux/macOS:
+  source venv/bin/activate
+
+  pip install -r requirements.txt
+  python run_local_api.py
+  ```
+  The API server starts at `http://127.0.0.1:8000`.
+
+- **Key Endpoints**:
+  - `GET /health` - Service status and model availability.
+  - `POST /analyze-image` - Accepts multipart image uploads, latitude, and longitude. Returns detected civic category, confidence score, authenticity flags, and routed department.
+  - `GET /categories` - List of detectable civic issue categories.
+  - `GET /reports` - Retrieve active and tracked issue records.
+
+---
+
+### 2. Smart Civic Admin Web Dashboard
+
+A modern administrative interface for municipal authorities to monitor incoming reports, view AI confidence scores, inspect images, and manage ticket status workflows.
+
+- **Stack**: React 18, Vite, Tailwind CSS, Firebase Firestore / Auth.
+- **Setup**:
+  ```bash
+  cd smart-civic-system-ak6/smart-civic-admin
+  npm install
+  npm run dev
+  ```
+  The admin portal starts at `http://localhost:5173`.
+
+---
+
+### 3. Citizen Mobile Application
+
+A cross-platform mobile application for citizens to report municipal issues with geotagged photography and track resolution status in real time.
+
+- **Stack**: Flutter / Dart.
+- **Setup**:
+  ```bash
+  cd smart-civic-system-ak6/citizen_app
+  flutter pub get
+  flutter run
+  ```
+
+---
+
+### 4. Standalone Web Demo Portal
+
+A zero-dependency HTML5/CSS/JavaScript client for testing the AI classification engine without needing the mobile or admin setup.
+
+- **Direct Usage**: Open `frontend/index.html` directly in any web browser.
+- **Integrated Mode**: Served through the FastAPI backend root at `http://127.0.0.1:8000/`.
+
+---
+
+### 5. Security and Database Rules
+
+`smart-civic-system-ak6/firestore.rules` enforces role-based access control:
+- Citizens can create issues and view public resolutions.
+- Admin and HOD personnel can update status, assign departments, and add official remarks.
+- Strict schema validation for geolocation and report payloads.
+
+---
+
+## Testing
+
+Run the test suite from the repository root:
+```bash
+pytest
+```
+
+---
+
+## License
+
+Python-first reference implementation used by JanSampark. All rights reserved.

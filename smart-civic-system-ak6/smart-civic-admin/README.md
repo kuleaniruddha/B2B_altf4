@@ -1,10 +1,10 @@
-# Smart Civic Mumbai — Admin Panel
-## Setup Instructions (Follow exactly)
+﻿# Smart Civic Mumbai - Admin Panel
+## Setup Instructions
 
 ---
 
-## STEP 1 — File Structure
-Create this folder structure on your computer:
+## STEP 1 - File Structure
+Verify the folder structure:
 
 ```
 smart-civic-admin/
@@ -15,7 +15,7 @@ smart-civic-admin/
     ├── main.jsx
     ├── App.jsx
     ├── index.css
-    ├── firebase.js          ← PUT YOUR FIREBASE CONFIG HERE
+    ├── firebase.js          (Firebase config location)
     ├── pages/
     │   ├── LoginPage.jsx
     │   ├── Dashboard.jsx
@@ -28,28 +28,27 @@ smart-civic-admin/
 
 ---
 
-## STEP 2 — Add Your Firebase Config
+## STEP 2 - Add Your Firebase Config
 
-Open `src/firebase.js` and replace the placeholder values:
+Open `src/firebase.js` and configure your credentials:
 ```js
 const firebaseConfig = {
   apiKey: "...",           // From Firebase Console
   authDomain: "...",
-  projectId: "smartcivic-996df",  // Your project ID
+  projectId: "smartcivic-996df",
   storageBucket: "...",
   messagingSenderId: "...",
   appId: "...",
 };
 ```
 
-👉 Get these from: Firebase Console → Project Settings → Your Apps → SDK setup & config
+Reference: Firebase Console -> Project Settings -> Your Apps -> SDK setup & config
 
 ---
 
-## STEP 3 — Create Admin User in Firestore
+## STEP 3 - Create Admin User in Firestore
 
-In Firebase Console → Firestore → users collection,
-find YOUR user document and add/update the `role` field:
+In Firebase Console -> Firestore -> users collection, find your user document and set the role field:
 
 ```json
 {
@@ -59,13 +58,13 @@ find YOUR user document and add/update the `role` field:
 }
 ```
 
-⚠️ Without `role: "admin"`, login will be rejected even with correct credentials.
+Note: Without `role: "admin"` or `role: "hod"`, login will be rejected.
 
 ---
 
-## STEP 4 — Firestore Rules
+## STEP 4 - Firestore Rules
 
-In Firebase Console → Firestore → Rules, paste:
+In Firebase Console -> Firestore -> Rules:
 
 ```
 rules_version = '2';
@@ -83,7 +82,7 @@ service cloud.firestore {
 
 ---
 
-## STEP 5 — Install & Run
+## STEP 5 - Install & Run
 
 Open terminal in the `smart-civic-admin` folder:
 
@@ -96,24 +95,22 @@ Open browser at: http://localhost:5173
 
 ---
 
-## STEP 6 — Build for Production
+## STEP 6 - Build for Production
 
 ```bash
 npm run build
 ```
 
-Upload the `dist/` folder to any static host (Firebase Hosting, Netlify, Vercel).
-
 ---
 
 ## Features
-- ✅ Admin-only login (role check from Firestore)
-- ✅ Dashboard with live stats + 4 charts
-- ✅ Complaints table with search + filter tabs
-- ✅ Complaint detail modal with workflow timeline
-- ✅ Assign to department, update status, add notes
-- ✅ Users grid with block/delete
-- ✅ Analytics page with 5 charts
-- ✅ Real-time updates (Firebase onSnapshot)
-- ✅ Collapsible sidebar
-- ✅ Dark mode design
+- Admin-only authentication with role validation from Firestore
+- Dashboard with live statistics and summary widgets
+- Complaints table with search, sorting, and status filter tabs
+- Complaint detail modal with workflow timeline and AI verification
+- Department assignment, status transitions, and resolution remarks
+- User directory management
+- Analytics views with department-wise performance metrics
+- Real-time updates via Firebase onSnapshot
+- Responsive collapsible sidebar navigation
+- Modern theme design
